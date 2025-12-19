@@ -1,0 +1,6 @@
+Flask
+pyTelegramBotAPI
+firebase-admin
+python-dotenv
+APScheduler
+python-dateutil
