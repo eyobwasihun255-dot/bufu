@@ -15,6 +15,9 @@ import firebase_admin
 from firebase_admin import credentials, db as rtdb, storage as fb_storage
 from dotenv import load_dotenv
 from apscheduler.schedulers.background import BackgroundScheduler
+import json
+
+
 
 load_dotenv()
 
@@ -60,7 +63,7 @@ app = Flask(__name__)
 
 # Initialize Firebase app (add storageBucket if provided)
 if not firebase_admin._apps:
-    cred = credentials.Certificate(FIREBASE_CRED)
+    cred = credentials.Certificate(json.loads(os.getenv("FIREBASE_CRED_JSON")))
     fb_options = {"databaseURL": FIREBASE_DB_URL}
     if FIREBASE_STORAGE_BUCKET:
         fb_options["storageBucket"] = FIREBASE_STORAGE_BUCKET
