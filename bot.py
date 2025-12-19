@@ -25,7 +25,6 @@ load_dotenv()
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL", "")
-FIREBASE_CRED = os.getenv("FIREBASE_CRED", "firebase_service_account.json")
 FIREBASE_DB_URL = os.getenv("FIREBASE_DB_URL")  # REQUIRED
 FIREBASE_STORAGE_BUCKET = os.getenv("FIREBASE_STORAGE_BUCKET")  # optional
 PORT = int(os.getenv("PORT", 5000))
