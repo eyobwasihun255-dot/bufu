@@ -1492,13 +1492,6 @@ def telegram_webhook():
     bot.process_new_updates([update])
     return "OK", 200
 
-def telegram_webhook():
-    update = telebot.types.Update.de_json(
-        request.stream.read().decode("utf-8")
-    )
-    bot.process_new_updates([update])
-    return "OK", 200
-
 @app.route("/set_webhook")
 def set_webhook():
  
