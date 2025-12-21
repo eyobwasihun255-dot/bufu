@@ -1486,10 +1486,8 @@ restore_scheduled_orders()
 # =============== WEBHOOK ===============
 @app.route("/webhook", methods=["POST"])
 def telegram_webhook():
-    update = telebot.types.Update.de_json(
-        request.get_data(as_text=True)
-    )
-    bot.process_new_updates([update])
+    print("🔥 WEBHOOK HIT")
+    print(request.get_data(as_text=True))
     return "OK", 200
 
 @app.route("/set_webhook")
