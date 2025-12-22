@@ -582,7 +582,7 @@ def general_text_handler(message):
     text = message.text.strip() if message.text else ""
     state = get_user_state(user.id)
     print(state)
-    if state.get("add_food_mode") and state.get("step") == "choose":
+    if state.get("add_food_mode") :
         rid = state["rid"]
 
         if state["step"] == "name":
@@ -669,26 +669,33 @@ def general_text_handler(message):
         if text == "➕ Add Food":
             set_user_state(user.id, {
                 "editing_rest": True,
-                "rid": rid,
-                "add_food_mode": True,
-                "step": "choose"
+                "rid": rid
             })
-
 
             kb = types.InlineKeyboardMarkup()
             kb.add(
                 types.InlineKeyboardButton(
-                    "➕ New Food",
-                    callback_data=json.dumps({"action": "add_food_new", "rid": rid})
-                ),
-                types.InlineKeyboardButton(
                     "📦 Existing Food",
-                    callback_data=json.dumps({"action": "add_food_existing", "rid": rid, "page": 0})
+                    callback_data=json.dumps({
+                        "action": "add_food_existing",
+                        "rid": rid,
+                        "page": 0
+                    })
+                )
+            )
+            kb.add(
+                types.InlineKeyboardButton(
+                    "➕ New Food",
+                    callback_data=json.dumps({
+                        "action": "add_food_new",
+                        "rid": rid
+                    })
                 )
             )
 
-            bot.send_message(user.id, "Choose food type:", reply_markup=kb)
+            bot.send_message(user.id, "🍔 How do you want to add food?", reply_markup=kb)
             return
+
 
         # ---- Cancel ----
         if text == "❌ Cancel":
