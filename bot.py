@@ -272,32 +272,33 @@ def build_restaurant_page(page=0, search=None):
 
 def build_food_page(rid, page=0):
     rest = get_restaurant_ref(rid).get() or {}
-    foods = list((rest.get("foods") or {}).items())
-    foods.sort(key=lambda x: x[1]["name"].lower())
+    foods = rest.get("foods") or []
 
     start = page * PAGE_SIZE
     end = start + PAGE_SIZE
 
     kb = types.InlineKeyboardMarkup()
-    for fid, f in foods[start:end]:
+    for idx, f in enumerate(foods[start:end], start=start):
         kb.add(types.InlineKeyboardButton(
             f["name"],
             callback_data=json.dumps({
                 "action": "add_existing_food",
                 "rid": rid,
-                "fid": fid
+                "index": idx
             })
         ))
 
     nav = []
     if page > 0:
-        nav.append(types.InlineKeyboardButton("⬅ Prev", callback_data=json.dumps({
-            "action": "food_page", "rid": rid, "page": page - 1
-        })))
+        nav.append(types.InlineKeyboardButton(
+            "⬅ Prev",
+            callback_data=json.dumps({"action": "food_page", "rid": rid, "page": page - 1})
+        ))
     if end < len(foods):
-        nav.append(types.InlineKeyboardButton("Next ➡", callback_data=json.dumps({
-            "action": "food_page", "rid": rid, "page": page + 1
-        })))
+        nav.append(types.InlineKeyboardButton(
+            "Next ➡",
+            callback_data=json.dumps({"action": "food_page", "rid": rid, "page": page + 1})
+        ))
 
     if nav:
         kb.row(*nav)
@@ -581,6 +582,10 @@ def general_text_handler(message):
     text = message.text.strip() if message.text else ""
     state = get_user_state(user.id)
     print(state)
+    if state.get("add_food_mode") and state.get("step") == "choose":
+        bot.send_message(user_id, "⬆️ Please use the buttons above to choose food type.")
+        return
+
     if state.get("add_food_mode"):
         rid = state["rid"]
 
@@ -1266,20 +1271,22 @@ def callback_handler(call):
         return   # 🔥 REQUIRED
     if action == "add_existing_food":
         rid = data["rid"]
-        fid = data["fid"]
+        index = data["index"]
 
-        food = get_food_ref(fid).get()
-        if not food:
+        rest = get_restaurant_ref(rid).get() or {}
+        foods = rest.get("foods") or []
+
+        if index >= len(foods):
             bot.answer_callback_query(call.id, "Food not found")
             return
 
-        state = get_user_state(user_id)
-        state.update({
+        food = foods[index]
+
+        set_user_state(user_id, {
             "awaiting_food_price": True,
             "rid": rid,
             "food_data": food
         })
-        set_user_state(user_id, state)
 
         bot.send_message(
             user_id,
@@ -1288,6 +1295,7 @@ def callback_handler(call):
         )
         bot.answer_callback_query(call.id)
         return
+
 
 # 👤 SELECT MANAGER FOR RESTAURANT (ADMIN FLOW)
 # ======================================================
