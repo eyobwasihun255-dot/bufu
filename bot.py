@@ -583,10 +583,6 @@ def general_text_handler(message):
     state = get_user_state(user.id)
     print(state)
     if state.get("add_food_mode") and state.get("step") == "choose":
-        bot.send_message(user_id, "⬆️ Please use the buttons above to choose food type.")
-        return
-
-    if state.get("add_food_mode"):
         rid = state["rid"]
 
         if state["step"] == "name":
