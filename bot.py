@@ -1170,6 +1170,20 @@ def callback_handler(call):
         })
         bot.send_message(user_id, "Send new food name:")
         return
+    
+    if action == "add_food_existing":
+        rid = data["rid"]
+        page = data.get("page", 0)
+
+        kb = build_food_page(rid, page)
+
+        bot.send_message(
+            user_id,
+            "📦 Select food to add:",
+            reply_markup=kb
+        )
+        bot.answer_callback_query(call.id)
+        return
 
 
     if action == "edit_search":
@@ -1257,7 +1271,8 @@ def callback_handler(call):
             reply_markup=kb,
             parse_mode="Markdown"
         )
-
+        bot.answer_callback_query(call.id)
+        return
     if action == "add_existing_food":
         rid = data["rid"]
         fid = data["fid"]
