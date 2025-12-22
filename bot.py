@@ -271,7 +271,8 @@ def build_restaurant_page(page=0, search=None):
     return kb, total_pages
 
 def build_food_page(rid, page=0):
-    foods = list(get_all_foods().items())
+    rest = get_restaurant_ref(rid).get() or {}
+    foods = list((rest.get("foods") or {}).items())
     foods.sort(key=lambda x: x[1]["name"].lower())
 
     start = page * PAGE_SIZE
@@ -580,6 +581,38 @@ def general_text_handler(message):
     text = message.text.strip() if message.text else ""
     state = get_user_state(user.id)
     print(state)
+    if state.get("add_food_mode"):
+        rid = state["rid"]
+
+        if state["step"] == "name":
+            state["food"] = {"name": text}
+            state["step"] = "price"
+            set_user_state(user_id, state)
+            bot.send_message(user_id, "💰 Send food price:")
+            return
+
+        if state["step"] == "price":
+            try:
+                price = float(text)
+            except:
+                bot.send_message(user_id, "❌ Invalid price.")
+                return
+
+            food = state["food"]
+            food["price"] = price
+
+            ref = get_restaurant_ref(rid).child("foods")
+
+            def txn(cur):
+                cur = cur or []
+                cur.append(food)
+                return cur
+
+            ref.transaction(txn)
+
+            clear_user_state(user_id)
+            bot.send_message(user_id, f"✅ {food['name']} added to restaurant.")
+            return
 
     if state.get("awaiting_search"):
         search_type = state.get("awaiting_search_type")
@@ -633,8 +666,13 @@ def general_text_handler(message):
             return
         
         if text == "➕ Add Food":
-            clear_user_state(user.id)   # 🔥 REQUIRED
-            set_user_state(user.id, {"adding_food_rest": rid})
+            set_user_state(user.id, {
+                "editing_rest": True,
+                "rid": rid,
+                "add_food_mode": True,
+                "step": "choose"
+            })
+
 
             kb = types.InlineKeyboardMarkup()
             kb.add(
@@ -1156,14 +1194,15 @@ def callback_handler(call):
         return
     if action == "add_food_new":
         set_user_state(user_id, {
-            "add_food": True,
+            "add_food_mode": True,
             "rid": data["rid"],
-            "step": "name",
-            "data": {}
+            "step": "name"
         })
-        bot.send_message(user_id, "Send new food name:")
+        bot.send_message(user_id, "🍔 Send food name:")
         bot.answer_callback_query(call.id)
         return
+
+        
     
     if action == "add_food_existing":
         rid = data["rid"]
