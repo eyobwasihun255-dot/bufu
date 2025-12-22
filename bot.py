@@ -36,7 +36,7 @@ ROOT_KEY = "foodbot"
 USERS_KEY = "users"
 RESTAURANTS_KEY = "restaurants"
 ORDERS_KEY = "orders"
-
+FOODS_KEY = "foods"
 # Predefined food choices used during restaurant creation (editable)
 PRESET_FOODS = [
     {"name": "Burger", "price": "5.00"},
@@ -69,7 +69,7 @@ if not firebase_admin._apps:
     firebase_admin.initialize_app(cred, fb_options)
 
 root_ref = rtdb.reference(ROOT_KEY)
-
+foods_ref = rtdb.reference(FOODS_KEY)
 scheduler = BackgroundScheduler()
 scheduler.start()
 
@@ -271,8 +271,7 @@ def build_restaurant_page(page=0, search=None):
     return kb, total_pages
 
 def build_food_page(rid, page=0):
-    rest = get_restaurant_ref(rid).get() or {}
-    foods = rest.get("foods") or []
+    foods = foods_ref().child(rid).get() or []
 
     start = page * PAGE_SIZE
     end = start + PAGE_SIZE
@@ -602,7 +601,7 @@ def general_text_handler(message):
             food = state["food"]
             food["price"] = price
 
-            ref = get_restaurant_ref(rid).child("foods")
+            ref = foods_ref().child(rid)
 
             def txn(cur):
                 cur = cur or []
