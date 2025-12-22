@@ -550,21 +550,6 @@ def add_food_cmd(message):
         "Name | People | Description\n\n"
         "Example:\nBurger | 1 | Beef burger with cheese"
     )
-@bot.message_handler(commands=["add_rest_food"])
-def add_rest_food_cmd(message):
-    user_id = message.from_user.id
-
-    kb = types.InlineKeyboardMarkup()
-    for rid, r in get_all_restaurants().items():
-        kb.add(types.InlineKeyboardButton(
-            r["name"],
-            callback_data=json.dumps({
-                "action": "select_rest_for_food",
-                "rid": rid
-            })
-        ))
-
-    bot.send_message(user_id, "Select restaurant:", reply_markup=kb)
 
 @bot.message_handler(commands=['listrestaurants'])
 def cmd_list_restaurants(message):
@@ -648,15 +633,21 @@ def general_text_handler(message):
             return
         
         if text == "➕ Add Food":
+            clear_user_state(user.id)   # 🔥 REQUIRED
+            set_user_state(user.id, {"adding_food_rest": rid})
+
             kb = types.InlineKeyboardMarkup()
             kb.add(
-                types.InlineKeyboardButton("➕ New Food", callback_data=json.dumps({
-                    "action": "add_food_new", "rid": rid
-                })),
-                types.InlineKeyboardButton("📦 Existing Food", callback_data=json.dumps({
-                    "action": "add_food_existing", "rid": rid, "page": 0
-                }))
+                types.InlineKeyboardButton(
+                    "➕ New Food",
+                    callback_data=json.dumps({"action": "add_food_new", "rid": rid})
+                ),
+                types.InlineKeyboardButton(
+                    "📦 Existing Food",
+                    callback_data=json.dumps({"action": "add_food_existing", "rid": rid, "page": 0})
+                )
             )
+
             bot.send_message(user.id, "Choose food type:", reply_markup=kb)
             return
 
@@ -1151,6 +1142,7 @@ def callback_handler(call):
             call.message.message_id,
             reply_markup=kb
         )
+        bot.answer_callback_query(call.id)  # ✅ ADD
         return
     
     if action == "food_page":
@@ -1160,6 +1152,7 @@ def callback_handler(call):
             call.message.message_id,
             reply_markup=kb
         )
+        bot.answer_callback_query(call.id)
         return
     if action == "add_food_new":
         set_user_state(user_id, {
@@ -1169,6 +1162,7 @@ def callback_handler(call):
             "data": {}
         })
         bot.send_message(user_id, "Send new food name:")
+        bot.answer_callback_query(call.id)
         return
     
     if action == "add_food_existing":
@@ -1188,6 +1182,7 @@ def callback_handler(call):
 
     if action == "edit_search":
         set_user_state(user_id, {"awaiting_edit_search": True})
+        bot.answer_callback_query(call.id)
         bot.send_message(user_id, "🔍 Send restaurant name:")
         return
 
@@ -1230,49 +1225,6 @@ def callback_handler(call):
         bot.answer_callback_query(call.id, "Restaurant deleted")
         bot.send_message(user_id, "✅ Restaurant removed")
         return   # 🔥 REQUIRED
-    if action == "select_rest_for_food":
-        rid = data["rid"]
-        rest = get_restaurant_ref(rid).get() or {}
-
-        kb = types.InlineKeyboardMarkup()
-
-        # 🍽 Foods already in restaurant
-        for f in rest.get("foods", []):
-            kb.add(types.InlineKeyboardButton(
-                f"🍽 {f['name']} (already added)",
-                callback_data="noop"
-            ))
-
-        # ➕ Global foods
-        all_foods = get_all_foods()
-        for fid, f in all_foods.items():
-            kb.add(types.InlineKeyboardButton(
-                f"➕ {f['name']}",
-                callback_data=json.dumps({
-                    "action": "add_existing_food",
-                    "rid": rid,
-                    "fid": fid
-                })
-            ))
-
-        # ❌ Cancel
-        kb.add(types.InlineKeyboardButton(
-            "❌ Cancel",
-            callback_data=json.dumps({
-                "action": "cancel_add_rest_food"
-            })
-        ))
-
-        set_user_state(user_id, {"adding_food_to_rest": rid})
-
-        bot.send_message(
-            user_id,
-            f"🍽 *{rest.get('name')}*\nSelect food to add:",
-            reply_markup=kb,
-            parse_mode="Markdown"
-        )
-        bot.answer_callback_query(call.id)
-        return
     if action == "add_existing_food":
         rid = data["rid"]
         fid = data["fid"]
@@ -1295,6 +1247,7 @@ def callback_handler(call):
             f"💰 Send price for *{food['name']}*:",
             parse_mode="Markdown"
         )
+        bot.answer_callback_query(call.id)
         return
 
 # 👤 SELECT MANAGER FOR RESTAURANT (ADMIN FLOW)
