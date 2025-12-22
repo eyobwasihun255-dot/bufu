@@ -271,7 +271,7 @@ def build_restaurant_page(page=0, search=None):
     return kb, total_pages
 
 def build_food_page(rid, page=0):
-    foods = foods_ref().child(rid).get() or []
+    foods = get_foods_ref(rid)
 
     start = page * PAGE_SIZE
     end = start + PAGE_SIZE
@@ -601,7 +601,7 @@ def general_text_handler(message):
             food = state["food"]
             food["price"] = price
 
-            ref = foods_ref().child(rid)
+            ref = get_foods_ref(rid)
 
             def txn(cur):
                 cur = cur or []
