@@ -227,6 +227,81 @@ def schedule_order_notification(order_id, run_at_dt, restaurant_chat_id):
         id=f"order_{order_id}",
         replace_existing=True
     )
+PAGE_SIZE = 10
+
+def build_restaurant_page(page=0, search=None):
+    rests = list(get_all_restaurants().items())
+
+    # search filter
+    if search:
+        rests = [(rid, r) for rid, r in rests if search.lower() in r["name"].lower()]
+
+    # sort alphabetically
+    rests.sort(key=lambda x: x[1]["name"].lower())
+
+    total_pages = max(1, (len(rests) + PAGE_SIZE - 1) // PAGE_SIZE)
+    start = page * PAGE_SIZE
+    end = start + PAGE_SIZE
+
+    kb = types.InlineKeyboardMarkup()
+
+    for rid, r in rests[start:end]:
+        kb.add(types.InlineKeyboardButton(
+            r["name"],
+            callback_data=json.dumps({"action": "edit_rest", "rid": rid})
+        ))
+
+    nav = []
+    if page > 0:
+        nav.append(types.InlineKeyboardButton("⬅ Prev", callback_data=json.dumps({
+            "action": "edit_page", "page": page - 1, "search": search
+        })))
+    if page < total_pages - 1:
+        nav.append(types.InlineKeyboardButton("Next ➡", callback_data=json.dumps({
+            "action": "edit_page", "page": page + 1, "search": search
+        })))
+
+    if nav:
+        kb.row(*nav)
+
+    kb.add(types.InlineKeyboardButton("🔍 Search", callback_data=json.dumps({
+        "action": "edit_search"
+    })))
+
+    return kb, total_pages
+
+def build_food_page(rid, page=0):
+    foods = list(get_all_foods().items())
+    foods.sort(key=lambda x: x[1]["name"].lower())
+
+    start = page * PAGE_SIZE
+    end = start + PAGE_SIZE
+
+    kb = types.InlineKeyboardMarkup()
+    for fid, f in foods[start:end]:
+        kb.add(types.InlineKeyboardButton(
+            f["name"],
+            callback_data=json.dumps({
+                "action": "add_existing_food",
+                "rid": rid,
+                "fid": fid
+            })
+        ))
+
+    nav = []
+    if page > 0:
+        nav.append(types.InlineKeyboardButton("⬅ Prev", callback_data=json.dumps({
+            "action": "food_page", "rid": rid, "page": page - 1
+        })))
+    if end < len(foods):
+        nav.append(types.InlineKeyboardButton("Next ➡", callback_data=json.dumps({
+            "action": "food_page", "rid": rid, "page": page + 1
+        })))
+
+    if nav:
+        kb.row(*nav)
+
+    return kb
 
 # =============== STATE HANDLING ===============
 
@@ -435,25 +510,16 @@ def cmd_add(message):
     set_user_state(message.from_user.id, {
         "add_flow": True
     })
+
 @bot.message_handler(commands=["edit"])
 def edit_restaurant_cmd(message):
-    user_id = message.from_user.id
-
-    kb = types.InlineKeyboardMarkup()
-    for rid, r in get_all_restaurants().items():
-        kb.add(types.InlineKeyboardButton(
-            r["name"],
-            callback_data=json.dumps({
-                "action": "edit_rest",
-                "rid": rid
-            })
-        ))
-
+    kb, total = build_restaurant_page(page=0)
     bot.send_message(
-        user_id,
-        "✏️ Select restaurant to edit:",
+        message.from_user.id,
+        "✏️ Select restaurant to edit (Page 1):",
         reply_markup=kb
     )
+
 @bot.message_handler(commands=["delete"])
 def delete_restaurant_cmd(message):
     user_id = message.from_user.id
@@ -580,6 +646,19 @@ def general_text_handler(message):
             })
             bot.send_message(user.id, "🖼 Send new restaurant photo:")
             return
+        
+        if text == "➕ Add Food":
+            kb = types.InlineKeyboardMarkup()
+            kb.add(
+                types.InlineKeyboardButton("➕ New Food", callback_data=json.dumps({
+                    "action": "add_food_new", "rid": rid
+                })),
+                types.InlineKeyboardButton("📦 Existing Food", callback_data=json.dumps({
+                    "action": "add_food_existing", "rid": rid, "page": 0
+                }))
+            )
+            bot.send_message(user.id, "Choose food type:", reply_markup=kb)
+            return
 
         # ---- Cancel ----
         if text == "❌ Cancel":
@@ -592,6 +671,15 @@ def general_text_handler(message):
 
         clear_user_state(user.id)
         bot.send_message(user.id, "✅ Restaurant name updated.")
+        return
+    if state.get("awaiting_edit_search"):
+        clear_user_state(user_id)
+        kb, total = build_restaurant_page(0, text)
+        bot.send_message(
+            user_id,
+            f"🔍 Search results for '{text}':",
+            reply_markup=kb
+        )
         return
 
     if state.get("awaiting_food_data"):
@@ -1053,7 +1141,42 @@ def callback_handler(call):
     # ======================================================
     # ✏️ EDIT RESTAURANT
     # ======================================================
+    if action == "edit_page":
+        page = data["page"]
+        search = data.get("search")
+        kb, total = build_restaurant_page(page, search)
+        bot.edit_message_text(
+            f"✏️ Select restaurant to edit (Page {page+1}):",
+            call.message.chat.id,
+            call.message.message_id,
+            reply_markup=kb
+        )
+        return
     
+    if action == "food_page":
+        kb = build_food_page(data["rid"], data["page"])
+        bot.edit_message_reply_markup(
+            call.message.chat.id,
+            call.message.message_id,
+            reply_markup=kb
+        )
+        return
+    if action == "add_food_new":
+        set_user_state(user_id, {
+            "add_food": True,
+            "rid": data["rid"],
+            "step": "name",
+            "data": {}
+        })
+        bot.send_message(user_id, "Send new food name:")
+        return
+
+
+    if action == "edit_search":
+        set_user_state(user_id, {"awaiting_edit_search": True})
+        bot.send_message(user_id, "🔍 Send restaurant name:")
+        return
+
     if action == "edit_rest":
         rid = data["rid"]
         rest = get_restaurant_ref(rid).get()
@@ -1069,7 +1192,9 @@ def callback_handler(call):
 
         kb = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         kb.add("✏️ Name", "📍 Location")
-        kb.add("🖼 Image", "❌ Cancel")
+        kb.add("🖼 Image", "➕ Add Food")
+        kb.add("❌ Cancel")
+
 
         bot.send_message(
             user_id,
