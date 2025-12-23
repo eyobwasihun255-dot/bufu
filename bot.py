@@ -670,19 +670,10 @@ def general_text_handler(message):
         if text == "➕ Add Food":
             set_user_state(user.id, {
                 "editing_rest": True,
-                "rid": rid,
-            })
+                "rid": rid
+                   })
             kb = types.InlineKeyboardMarkup()
-            kb.add(
-                types.InlineKeyboardButton(
-                    "📦 Existing Food",
-                    callback_data=json.dumps({
-                        "action": "add_food_existing",
-                        "rid": rid,
-                        "page": 0
-                    })
-                )
-            )
+           
             kb.add(
                 types.InlineKeyboardButton(
                     "➕ New Food",
