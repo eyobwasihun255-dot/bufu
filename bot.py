@@ -603,19 +603,14 @@ def general_text_handler(message):
                 bot.send_message(user_id, "❌ Invalid price. Send a number like 5 or 5.50")
                 return
 
-            
-
+            rid = state["rid"]
             food = state["food"]
             food["price"] = price
 
-            ref = get_foods_ref()
+            # ✅ SAVE INSIDE THE RESTAURANT
+            food_id = uuid.uuid4().hex[:8]
 
-            def txn(cur):
-                cur = cur or []
-                cur.append(food)
-                return cur
-
-            ref.transaction(txn)
+            get_restaurant_ref(rid).child("foods").child(food_id).set(food)
 
             clear_user_state(user_id)
             bot.send_message(user_id, f"✅ {food['name']} added to restaurant.")
