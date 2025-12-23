@@ -668,8 +668,10 @@ def general_text_handler(message):
             return
         
         if text == "➕ Add Food":
-            
-
+            set_user_state(user.id, {
+                "editing_rest": True,
+                "rid": rid,
+            })
             kb = types.InlineKeyboardMarkup()
             kb.add(
                 types.InlineKeyboardButton(
