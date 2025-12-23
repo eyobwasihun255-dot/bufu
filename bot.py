@@ -573,6 +573,12 @@ def get_foods_ref():
     return rtdb.reference("foods")
 def get_food_ref(fid):
     return get_foods_ref().child(fid)
+def parse_price(text):
+    text = text.strip()
+    text = text.replace(",", "")  # allow "1,000"
+    if not text.replace(".", "", 1).isdigit():
+        return None
+    return float(text)
 
 @bot.message_handler(func=lambda m: True)
 def general_text_handler(message):
@@ -592,13 +598,17 @@ def general_text_handler(message):
             return
 
         if state["step"] == "price":
-            price = float(text)
+            price = parse_price(message.text)
+            if price is None or price <= 0:
+                bot.send_message(user_id, "❌ Invalid price. Send a number like 5 or 5.50")
+                return
+
             
 
             food = state["food"]
             food["price"] = price
 
-            ref = get_foods_ref(rid)
+            ref = get_foods_ref()
 
             def txn(cur):
                 cur = cur or []
