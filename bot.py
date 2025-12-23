@@ -595,7 +595,8 @@ def general_text_handler(message):
             try:
                 price = float(text)
             except:
-                price = 0
+                bot.send_message(user_id, "❌ Invalid price.")
+                return
 
             food = state["food"]
             food["price"] = price
