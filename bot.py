@@ -671,7 +671,28 @@ def general_text_handler(message):
                 "rid": rid
             })
 
-            bot.send_message(user.id, "🖼 Send new restaurant photo:")
+            kb = types.InlineKeyboardMarkup()
+            kb.add(
+                types.InlineKeyboardButton(
+                    "📦 Existing Food",
+                    callback_data=json.dumps({
+                        "action": "add_food_existing",
+                        "rid": rid,
+                        "page": 0
+                    })
+                )
+            )
+            kb.add(
+                types.InlineKeyboardButton(
+                    "➕ New Food",
+                    callback_data=json.dumps({
+                        "action": "add_food_new",
+                        "rid": rid
+                    })
+                )
+            )
+
+            bot.send_message(user.id, "🍔 How do you want to add food?", reply_markup=kb)
             return
 
 
