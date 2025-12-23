@@ -595,8 +595,7 @@ def general_text_handler(message):
             try:
                 price = float(text)
             except:
-                bot.send_message(user_id, "❌ Invalid price.")
-                return
+                price = 0
 
             food = state["food"]
             food["price"] = price
@@ -1199,6 +1198,7 @@ def callback_handler(call):
         )
         bot.answer_callback_query(call.id)
         return
+    
     if action == "add_food_new":
         set_user_state(user_id, {
             "add_food_mode": True,
