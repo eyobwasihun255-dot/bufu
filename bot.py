@@ -672,16 +672,14 @@ def general_text_handler(message):
             })
 
             kb = types.InlineKeyboardMarkup()
-            kb.add(
-                types.InlineKeyboardButton(
-                    "📦 Existing Food",
-                    
-                )
-            )
+           
             kb.add(
                 types.InlineKeyboardButton(
                     "➕ New Food",
-                    
+                    callback_data=json.dumps({
+                        "action": "add_food_new",
+                        "rid": rid
+                    })
                 )
             )
 
