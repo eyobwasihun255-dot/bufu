@@ -270,8 +270,8 @@ def build_restaurant_page(page=0, search=None):
 
     return kb, total_pages
 
-def build_food_page(rid, page=0):
-    foods = get_foods_ref(rid)
+def build_food_page( page=0):
+    foods = get_foods_ref()
 
     start = page * PAGE_SIZE
     end = start + PAGE_SIZE
@@ -672,7 +672,16 @@ def general_text_handler(message):
             })
 
             kb = types.InlineKeyboardMarkup()
-           
+            kb.add(
+                types.InlineKeyboardButton(
+                    "📦 Existing Food",
+                    callback_data=json.dumps({
+                        "action": "add_food_existing",
+                        "rid": rid,
+                        "page": 0
+                    })
+                )
+            )
             kb.add(
                 types.InlineKeyboardButton(
                     "➕ New Food",
@@ -1203,10 +1212,9 @@ def callback_handler(call):
         
     
     if action == "add_food_existing":
-        rid = data["rid"]
         page = data.get("page", 0)
 
-        kb = build_food_page(rid, page)
+        kb = build_food_page( page)
 
         bot.send_message(
             user_id,
